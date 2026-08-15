@@ -1,6 +1,8 @@
 const state = {
   audioCtx: null,
   gainNode: null,
+  mediaSource: null,
+  audioElement: null,
   volumeReal: 50,
   pendenteVolume: 50,
   respostaCaptcha: 0,
@@ -20,6 +22,13 @@ function garantirAudio() {
     state.audioCtx = new AudioCtor();
     state.gainNode = state.audioCtx.createGain();
     state.gainNode.gain.value = state.volumeReal / 100;
+    
+    // Conectar microfone ou áudio do navegador ao ganho
+    if (state.audioElement) {
+      state.mediaSource = state.audioCtx.createMediaElementAudioSource(state.audioElement);
+      state.mediaSource.connect(state.gainNode);
+    }
+    
     state.gainNode.connect(state.audioCtx.destination);
   }
 
@@ -94,26 +103,36 @@ sliderReal.addEventListener("mouseleave", () => {
 sliderReal.addEventListener("input", () => {
   state.pendenteVolume = parseInt(sliderReal.value, 10);
   document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
-  atualizarStatus("VOLUME PENDENTE: " + state.pendenteVolume + "%");
+  
+  // Aplicar volume em tempo real a todos os elementos de áudio
+  aplicarVolumeEmTempo();
+  
+  atualizarStatus("VOLUME TEMPO REAL: " + state.pendenteVolume + "%");
 });
+
+function aplicarVolumeEmTempo() {
+  state.volumeReal = state.pendenteVolume;
+  
+  // Atualizar Web Audio API
+  if (state.gainNode) {
+    state.gainNode.gain.value = state.volumeReal / 100;
+  }
+  
+  // Atualizar todos os elementos de áudio da página
+  const audioElements = document.querySelectorAll('audio, video');
+  audioElements.forEach(el => {
+    el.volume = state.volumeReal / 100;
+  });
+}
 
 function cliqueAplicar() {
   const agora = Date.now();
   const intervalo = agora - state.ultimoClique;
 
   if (intervalo > 250 && intervalo < 800) {
-    const confirmar = confirm("Tem certeza ABSOLUTA que deseja alterar o volume para " + state.pendenteVolume + "%?");
-    if (confirmar) {
-      state.volumeReal = state.pendenteVolume;
-      if (state.gainNode) {
-        state.gainNode.gain.value = state.volumeReal / 100;
-      }
-      atualizarStatus("VOLUME APLICADO COM SUCESSO!");
-      alert("Volume aplicado com sucesso! (era só isso mesmo 😅)");
-    } else {
-      alert("Operação cancelada. O volume real continua " + state.volumeReal + "%.");
-      atualizarStatus("APLICAÇÃO CANCELADA");
-    }
+    aplicarVolumeEmTempo();
+    atualizarStatus("VOLUME APLICADO COM SUCESSO!");
+    alert("Volume aplicado com sucesso! (era só isso mesmo 😅)");
     state.ultimoClique = 0;
   } else {
     state.ultimoClique = agora;
@@ -126,11 +145,44 @@ setInterval(() => {
   document.getElementById("contador").textContent = String(state.contador).padStart(10, "0");
 }, 2000);
 
+// Adicionar atalhos de teclado para controlar volume
+document.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowUp" || event.key === "+") {
+    event.preventDefault();
+    state.pendenteVolume = Math.min(100, state.pendenteVolume + 5);
+    sliderReal.value = state.pendenteVolume;
+    document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
+    aplicarVolumeEmTempo();
+    atualizarStatus("VOLUME (TECLADO): " + state.pendenteVolume + "%");
+  } else if (event.key === "ArrowDown" || event.key === "-") {
+    event.preventDefault();
+    state.pendenteVolume = Math.max(0, state.pendenteVolume - 5);
+    sliderReal.value = state.pendenteVolume;
+    document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
+    aplicarVolumeEmTempo();
+    atualizarStatus("VOLUME (TECLADO): " + state.pendenteVolume + "%");
+  }
+});
+
+// Aplicar volume inicial a elementos de áudio existentes
+function inicializarAudio() {
+  const audioElements = document.querySelectorAll('audio, video');
+  audioElements.forEach(el => {
+    el.volume = state.volumeReal / 100;
+    // Sincronizar slider quando áudio é tocado
+    el.addEventListener('play', () => {
+      garantirAudio();
+    });
+  });
+  garantirAudio();
+}
+
 gerarCaptcha();
 sliderReal.disabled = true;
+inicializarAudio();
 AtualizarStatusInicial();
 
 function AtualizarStatusInicial() {
   document.getElementById("statusBox").innerHTML =
-    "VOLUME REAL: " + state.volumeReal + "% <br> AGUARDANDO INTERAÇÃO DO USUÁRIO...";
+    "VOLUME REAL: " + state.volumeReal + "% <br> ★ AGUARDANDO INTERAÇÃO DO USUÁRIO... <br> <small>Use o slider, setas do teclado (+/-), ou toque o tom</small>";
 }
