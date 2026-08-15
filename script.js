@@ -1,58 +1,59 @@
+const API_BASE = 'http://localhost:3000';
+
 const state = {
-  audioCtx: null,
-  gainNode: null,
-  mediaSource: null,
-  audioElement: null,
   volumeReal: 50,
   pendenteVolume: 50,
   respostaCaptcha: 0,
   ultimoClique: 0,
   contador: 1337,
+  systemAvailable: false,
 };
 
-function garantirAudio() {
-  if (!state.audioCtx) {
-    const AudioCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtor) {
-      document.getElementById("statusBox").innerHTML =
-        "VOLUME REAL: " + state.volumeReal + "% <br> NAVEGADOR SEM SUPORTE A Web Audio API.";
-      return false;
+// Fetch current system volume on startup
+async function inicializarVolume() {
+  try {
+    const response = await fetch(`${API_BASE}/api/volume`);
+    if (response.ok) {
+      const data = await response.json();
+      state.volumeReal = data.volume;
+      state.pendenteVolume = data.volume;
+      document.getElementById("sliderReal").value = state.volumeReal;
+      document.getElementById("pendenteTxt").textContent = state.volumeReal + "%";
+      state.systemAvailable = true;
+      atualizarStatus("SISTEMA DE VOLUME PRONTO");
     }
-
-    state.audioCtx = new AudioCtor();
-    state.gainNode = state.audioCtx.createGain();
-    state.gainNode.gain.value = state.volumeReal / 100;
-    
-    // Conectar microfone ou áudio do navegador ao ganho
-    if (state.audioElement) {
-      state.mediaSource = state.audioCtx.createMediaElementAudioSource(state.audioElement);
-      state.mediaSource.connect(state.gainNode);
-    }
-    
-    state.gainNode.connect(state.audioCtx.destination);
+  } catch (error) {
+    console.error('Erro ao conectar ao servidor:', error);
+    state.systemAvailable = false;
+    atualizarStatus("⚠ SERVIDOR NÃO DISPONÍVEL - MODO DEMO");
   }
-
-  return true;
 }
 
 function tocarTom() {
-  if (!garantirAudio()) return;
-
-  const osc = state.audioCtx.createOscillator();
+  // Simple beep using Web Audio API
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
   osc.type = "sine";
   osc.frequency.value = 440;
-  osc.connect(state.gainNode);
+  
+  // Set gain to reflect current volume
+  gain.gain.value = state.volumeReal / 100 * 0.3; // Reduce volume for safety
+  
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
   osc.start();
-  osc.stop(state.audioCtx.currentTime + 0.6);
+  osc.stop(audioCtx.currentTime + 0.6);
 
-  document.getElementById("statusBox").innerHTML =
-    "VOLUME REAL: " + state.volumeReal + "% <br> TOM DE TESTE EM 440Hz REPRODUZIDO.";
+  atualizarStatus("TOM DE TESTE EM 440Hz REPRODUZIDO");
 }
 
 function atualizarStatus(statusExtra = "") {
   const box = document.getElementById("statusBox");
-  const extra = statusExtra ? " <br> " + statusExtra : "";
-  box.innerHTML = "VOLUME REAL: " + state.volumeReal + "%" + extra;
+  const systemStatus = state.systemAvailable ? "🟢 CONECTADO" : "🔴 DESCONECTADO";
+  box.innerHTML = systemStatus + " | VOLUME REAL: " + state.volumeReal + "%" + (statusExtra ? " <br> " + statusExtra : "");
 }
 
 function gerarCaptcha() {
@@ -104,25 +105,39 @@ sliderReal.addEventListener("input", () => {
   state.pendenteVolume = parseInt(sliderReal.value, 10);
   document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
   
-  // Aplicar volume em tempo real a todos os elementos de áudio
+  // Apply volume in real-time
   aplicarVolumeEmTempo();
   
   atualizarStatus("VOLUME TEMPO REAL: " + state.pendenteVolume + "%");
 });
 
-function aplicarVolumeEmTempo() {
+async function aplicarVolumeEmTempo() {
   state.volumeReal = state.pendenteVolume;
   
-  // Atualizar Web Audio API
-  if (state.gainNode) {
-    state.gainNode.gain.value = state.volumeReal / 100;
+  if (!state.systemAvailable) {
+    atualizarStatus("⚠ SERVIDOR NÃO DISPONÍVEL - MUDANÇA LOCAL APENAS");
+    return;
   }
-  
-  // Atualizar todos os elementos de áudio da página
-  const audioElements = document.querySelectorAll('audio, video');
-  audioElements.forEach(el => {
-    el.volume = state.volumeReal / 100;
-  });
+
+  try {
+    const response = await fetch(`${API_BASE}/api/volume`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ volume: state.volumeReal })
+    });
+
+    if (response.ok) {
+      atualizarStatus("VOLUME APLICADO: " + state.volumeReal + "%");
+    } else {
+      const error = await response.json();
+      atualizarStatus("❌ ERRO: " + error.error);
+    }
+  } catch (error) {
+    console.error('Erro ao enviar volume:', error);
+    atualizarStatus("❌ ERRO DE CONEXÃO COM SERVIDOR");
+  }
 }
 
 function cliqueAplicar() {
@@ -145,7 +160,7 @@ setInterval(() => {
   document.getElementById("contador").textContent = String(state.contador).padStart(10, "0");
 }, 2000);
 
-// Adicionar atalhos de teclado para controlar volume
+// Keyboard shortcuts
 document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowUp" || event.key === "+") {
     event.preventDefault();
@@ -153,36 +168,33 @@ document.addEventListener("keydown", (event) => {
     sliderReal.value = state.pendenteVolume;
     document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
     aplicarVolumeEmTempo();
-    atualizarStatus("VOLUME (TECLADO): " + state.pendenteVolume + "%");
   } else if (event.key === "ArrowDown" || event.key === "-") {
     event.preventDefault();
     state.pendenteVolume = Math.max(0, state.pendenteVolume - 5);
     sliderReal.value = state.pendenteVolume;
     document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
     aplicarVolumeEmTempo();
-    atualizarStatus("VOLUME (TECLADO): " + state.pendenteVolume + "%");
   }
 });
 
-// Aplicar volume inicial a elementos de áudio existentes
-function inicializarAudio() {
-  const audioElements = document.querySelectorAll('audio, video');
-  audioElements.forEach(el => {
-    el.volume = state.volumeReal / 100;
-    // Sincronizar slider quando áudio é tocado
-    el.addEventListener('play', () => {
-      garantirAudio();
-    });
-  });
-  garantirAudio();
-}
+// Mute toggle (M key)
+document.addEventListener("keydown", (event) => {
+  if (event.key.toLowerCase() === 'm') {
+    event.preventDefault();
+    const isMuted = state.volumeReal === 0;
+    state.pendenteVolume = isMuted ? 50 : 0;
+    sliderReal.value = state.pendenteVolume;
+    document.getElementById("pendenteTxt").textContent = state.pendenteVolume + "%";
+    aplicarVolumeEmTempo();
+  }
+});
 
+// Initialize on page load
 gerarCaptcha();
 sliderReal.disabled = true;
-inicializarAudio();
+inicializarVolume();
 AtualizarStatusInicial();
 
 function AtualizarStatusInicial() {
-  document.getElementById("statusBox").innerHTML =
-    "VOLUME REAL: " + state.volumeReal + "% <br> ★ AGUARDANDO INTERAÇÃO DO USUÁRIO... <br> <small>Use o slider, setas do teclado (+/-), ou toque o tom</small>";
+  atualizarStatus("AGUARDANDO INTERAÇÃO DO USUÁRIO... | Use ↑↓ para ajuste rápido, M para mutar");
 }
