@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Volume Controler</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <marquee behavior="alternate" scrollamount="6">
+      ★彡 BEM VINDO AO MEU CONTROLADOR DE VOLUME PESSOAL 彡★ — NÃO USE COM FONE DE OUVIDO NO MÁXIMO!!! ★
+    </marquee>
+
+    <h1>~*~ Volume Controler ~*~</h1>
+
+    <div class="banner">⚠ MELHOR VISUALIZADO EM 800x600 COM NETSCAPE NAVIGATOR ⚠</div>
+
+    <p>Visitantes desde 1999: <span class="counter" id="contador">0000001337</span></p>
+
+    <table class="painel">
+      <tr><td colspan="2" class="titulo-secao">PASSO 1: PROVE QUE VOCÊ É HUMANO(A) DE VERDE</td></tr>
+      <tr>
+        <td colspan="2" class="captcha">
+          Quanto é <span id="captchaTexto"></span>?
+          <input type="text" id="captchaInput" size="4">
+          <button type="button" class="captcha-button" onclick="validarCaptcha()">Validar humanidade retro</button>
+          <div id="captchaMsg"></div>
+        </td>
+      </tr>
+
+      <tr><td colspan="2" class="titulo-secao">PASSO 2: AJUSTE (SE CONSEGUIR)</td></tr>
+      <tr>
+        <td style="width:50%">
+          <b>Slider "decorativo" (não faz nada, mas é bonito):</b>
+          <div class="slider-caixa">
+            <input type="range" id="sliderFalso" min="0" max="100" value="50">
+          </div>
+        </td>
+        <td>
+          <b>Slider real (cuidado: foge e é espelhado):</b>
+          <div class="slider-caixa" id="caixaReal">
+            <input type="range" id="sliderReal" min="0" max="100" value="50" disabled>
+          </div>
+        </td>
+      </tr>
+
+      <tr><td colspan="2" class="titulo-secao">PASSO 3: APLICAR</td></tr>
+      <tr>
+        <td colspan="2">
+          <p>Volume pendente: <b id="pendenteTxt">50%</b> (ainda não aplicado)</p>
+          <button type="button" id="btnAplicar" onclick="cliqueAplicar()">Aplicar Volume (clique 2x no ritmo certo)</button>
+          <button type="button" onclick="tocarTom()">🔊 Tocar tom de teste</button>
+        </td>
+      </tr>
+
+      <tr><td colspan="2" class="titulo-secao">STATUS ATUAL DO SISTEMA</td></tr>
+      <tr>
+        <td colspan="2" class="status" id="statusBox" aria-live="polite">
+          VOLUME REAL: 50% <br> AGUARDANDO INTERAÇÃO DO USUÁRIO...
+        </td>
+      </tr>
+    </table>
+
+    <div class="construcao">🚧 ESTA PÁGINA ESTÁ ETERNAMENTE EM CONSTRUÇÃO 🚧</div>
+
+    <footer>
+      © 1999-2026 Volume Master Corp™ — Otimizado para resolução 640x480 — Não copie sem autorização
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
