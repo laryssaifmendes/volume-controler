@@ -6,6 +6,7 @@ body {
   margin: 0;
   padding: 10px;
   cursor: crosshair;
+  animation: bodyPulse 2.5s infinite alternate;
 }
 
 .container {
@@ -15,6 +16,15 @@ body {
   margin: 10px auto;
   padding: 10px;
   box-shadow: 0 0 25px #00ffff;
+  position: relative;
+}
+
+.container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.1));
+  pointer-events: none;
 }
 
 h1 {
@@ -37,6 +47,11 @@ h1 {
   50% { opacity: 0.4; }
 }
 
+@keyframes bodyPulse {
+  0% { filter: saturate(1.2) contrast(1); }
+  100% { filter: saturate(2.1) contrast(1.15); }
+}
+
 .banner {
   background: repeating-linear-gradient(45deg, yellow, yellow 10px, black 10px, black 20px);
   color: red;
@@ -44,6 +59,7 @@ h1 {
   padding: 4px;
   border: 3px dashed red;
   margin-bottom: 8px;
+  box-shadow: inset 0 0 0 2px #fff;
 }
 
 .counter {
@@ -54,6 +70,7 @@ h1 {
   padding: 4px 8px;
   border: 2px inset gray;
   letter-spacing: 3px;
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.9);
 }
 
 .painel {
@@ -79,6 +96,7 @@ h1 {
 .slider-caixa {
   position: relative;
   height: 60px;
+  overflow: hidden;
 }
 
 input[type="range"] {
@@ -88,11 +106,14 @@ input[type="range"] {
 #sliderReal {
   transform: scaleX(-1);
   position: relative;
-  transition: left 0.15s ease;
+  left: 0;
+  top: 0;
+  transition: left 0.15s ease, top 0.15s ease, opacity 0.2s ease;
 }
 
 #sliderFalso {
   opacity: 0.9;
+  filter: sepia(1) saturate(2.2) hue-rotate(180deg);
 }
 
 .status {
@@ -117,10 +138,16 @@ button {
   font-weight: bold;
   cursor: pointer;
   margin: 4px;
+  box-shadow: 2px 2px 0 #111;
 }
 
 button:active {
   border-style: inset;
+  transform: translate(1px, 1px);
+}
+
+button:hover {
+  animation: blink 0.5s step-start infinite;
 }
 
 .captcha {
@@ -136,10 +163,13 @@ button:active {
   font-weight: bold;
   padding: 6px;
   animation: blink 0.8s step-start infinite;
+  border: 3px ridge #ff0;
 }
 
 footer {
   font-size: 11px;
   margin-top: 10px;
   color: #ccc;
+  text-shadow: 1px 1px #000;
 }
+
